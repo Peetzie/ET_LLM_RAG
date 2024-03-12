@@ -1,0 +1,14 @@
+seaborn
+scikit-learn
+matplotlib
+numpy
+pandas
+torch
+torchvision
+torchaudio
+huggingface
+transformers
+streamlit
+yaspin
+python-dotenv
+wikipedia-api
