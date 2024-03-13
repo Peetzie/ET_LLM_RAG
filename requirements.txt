@@ -12,3 +12,4 @@ streamlit
 yaspin
 python-dotenv
 wikipedia-api
+accelerate
