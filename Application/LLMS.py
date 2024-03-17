@@ -1,16 +1,28 @@
+# HuggingFace
 from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration
-import os
-from dotenv import load_dotenv
 from transformers import AutoTokenizer, AutoModelForCausalLM
+
+
+# Local
 from pathlib import Path
 import torch
+import os
+from dotenv import load_dotenv
+
+# Langchain
+from langchain_community.llms import HuggingFaceHub
+from langchain.chains import RetrievalQA
+
+# progress
+from tqdm import tqdm
 
 
-## Load variables
+# Load variables
 load_dotenv()
 access_key = os.getenv("HUGGING_FACE")
 root_dir = os.path.abspath(os.getcwd())
 model_dir = Path(root_dir, "models")
+articles_dir = Path(root_dir, "Articles")
 
 
 class BlenderbotChat:
@@ -116,3 +128,37 @@ class Llama7BChat:
             input_ids, max_length=256, num_beams=4, no_repeat_ngram_size=2
         )
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
+
+
+class Zephyr:
+    def __init__(self, vectorstore) -> None:
+        self.mname = "HuggingFaceH4/zephyr-7b-alpha"
+        self.model_kwargs = {
+            "temperature": 0.5,
+            "max_new_tokens": 512,
+            "max_length": 64,
+        }
+        self.vectorstore = vectorstore
+        self.retiever = vectorstore.as_retriever(
+            search_type="mmr", search_kwargs={"k": 5}
+        )
+        self.model = HuggingFaceHub(
+            repo_id=self.mname,
+            model_kwargs=self.model_kwargs,
+            huggingfacehub_api_token=access_key,
+        )
+
+    def generate_response(self, utterance):
+        prompt = f"""
+            You are an AI Assistant that follows instructions extremely well.
+            Please be truthful and give direct answers
+            </s>
+
+            {utterance}
+            </s>
+            """
+        relevant_docs = self.retiever.get_relevant_documents(utterance)
+        qa = RetrievalQA.from_chain_type(llm=self.model, retriever=self.retiever)
+        response = qa(prompt)
+        result = response["result"]
+        return result

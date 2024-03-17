@@ -62,21 +62,20 @@ def download_wikipedia_article(qid, user_agent, num_words_to_save):
         print(f"No Wikipedia article found for QID: {qid}")
 
 
-# Augment knowledge base with additional information from Wikipedia
-qid = "Q27586"
-user_agent = "flarsen"
-num_words_to_save = 1000
-download_wikipedia_article(qid, user_agent, num_words_to_save)
+# Define folder path
+folder_path = "/work3/s174159/ET_LLM_RAG/Articles/"
 
-# Define file path
-file_path = "/work3/s174159/ET_LLM_RAG/Dev/Articles/Ferrari.txt"
+# Encode articles in the folder
+articles = []
+for file_name in os.listdir(folder_path):
+    if file_name.endswith(".txt"):
+        file_path = os.path.join(folder_path, file_name)
+        content = load_text_document(file_path)
+        articles.append(content)
 
-# Load text document
-content = load_text_document(file_path)
-
-# Split text into chunks
+# Split text into chunks for each article
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=256, chunk_overlap=0)
-chunking = text_splitter.split_text(content)
+chunking = [text_splitter.split_text(article) for article in articles]
 
 
 # Define a class to represent documents
@@ -87,7 +86,7 @@ class Document:
 
 
 # Convert dictionaries into objects with 'page_content' attribute
-documents = [Document(chunk, metadata=None) for chunk in chunking]
+documents = [Document(chunk, metadata=None) for chunks in chunking for chunk in chunks]
 
 # Embed chunks using the specified embedding model
 access_key = os.getenv("HUGGING_FACE")
@@ -100,14 +99,13 @@ vectorstore = Chroma.from_documents(documents, embeddings)
 retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 5})
 
 # Perform retrieval-based question answering task
-query = "Who and when was Ferrai founded?"
+query = "When did Søren Pape die?"
 docs_rel = retriever.get_relevant_documents(query)
-
 
 # Generate response to a given query using augmented knowledge base
 model = HuggingFaceHub(
     repo_id="HuggingFaceH4/zephyr-7b-alpha",
-    model_kwargs={"temperature": 0.5, "max_new_tokens": 512, "max_length": 64},
+    model_kwargs={"temperature": 0.1, "max_new_tokens": 512, "max_length": 64},
     huggingfacehub_api_token=access_key,
 )
 qa = RetrievalQA.from_chain_type(llm=model, retriever=retriever)

@@ -4,7 +4,9 @@ from tqdm import tqdm
 import json
 import os
 from pathlib import Path
+
 root_dir = os.path.abspath(os.getcwd())
+
 
 # Function to get Wikipedia page title from Wikidata QID
 def get_wikipedia_title(qid, user_agent):
@@ -39,7 +41,7 @@ def download_wikipedia_article(qid, user_agent, num_words_to_save):
         content = fetch_wikipedia_article(title, num_words_to_save, user_agent)
         if content:
             # Save article content to disk
-            filename = Path(root_dir,f"Articles/{title}.txt")
+            filename = Path(root_dir, f"Articles/{title}.txt")
             with open(filename, "w", encoding="utf-8") as file:
                 file.write(content)
         else:
@@ -50,7 +52,7 @@ def download_wikipedia_article(qid, user_agent, num_words_to_save):
 
 def get_qids():
     # Define the path to the JSONL file
-    jsonl_file_path = Path(root_dir,"Tweeki_gold.jsonl")
+    jsonl_file_path = Path(root_dir, "Tweeki_gold.jsonl")
     qids_list = []
 
     with open(jsonl_file_path, "r") as file:
@@ -80,6 +82,26 @@ def delete_dataset():
         print(f"Error deleting dataset: {str(e)}")
 
 
+def check_non_empty():
+    """
+    Check if all .txt files in the specified folder are non-empty.
+
+    Args:
+    - folder_path (str): The path to the folder containing the .txt files.
+
+    Returns:
+    - empty_files (list): A list of names of empty .txt files.
+    """
+    folder_path = Path(root_dir, "Articles")
+    empty_files = []
+    for file_name in tqdm(os.listdir(folder_path), "Checking files"):
+        if file_name.endswith(".txt"):
+            file_path = os.path.join(folder_path, file_name)
+            if os.path.getsize(file_path) == 0:
+                empty_files.append(file_name)
+    return empty_files
+
+
 def download_wikipedia_article_with_progress(user_agent, num_words_to_save):
     qids_list = get_qids()
     num_articles = len(qids_list)
@@ -94,7 +116,7 @@ def download_wikipedia_article_with_progress(user_agent, num_words_to_save):
                 content = fetch_wikipedia_article(title, num_words_to_save, user_agent)
                 if content:
                     # Save article content to disk
-                    filename = Path(root_dir,f"Articles/{title}.txt")
+                    filename = Path(root_dir, f"Articles/{title}.txt")
                     with open(filename, "w", encoding="utf-8") as file:
                         file.write(content)
                     pbar_total.update(
