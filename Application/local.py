@@ -29,6 +29,12 @@ def initialize_chatbot(choice):
                 spinner.text = "Gemma2b initialized"
                 spinner.ok("✔")
                 return chatbot
+    elif choice == "4":
+        with yaspin(text="Initializing Llama2-7b...", color="blue") as spinner:
+            chatbot = LLMS.Llama7BChat(GPU=GPU)
+            spinner.text = "Llama2 initialized"
+            spinner.ok("✔")
+            return chatbot
     else:
         print("Invalid choice.")
         return None
@@ -43,8 +49,10 @@ def ask_gpu():
     print("2. No")
     choice = input("Enter your choice (1/2): ")
     if choice == "1":
+        print("Using GPU for inference.")
         return True
     elif choice == "2":
+        print("Using CPU for inference.")
         return False
     else:
         print("Invalid choice. Defaulting to CPU.")
@@ -54,10 +62,11 @@ def ask_gpu():
 def chat():
     print("Welcome to the Chat Application!")
     print("Choose a model to use:")
-    print("1. Blenderbot")
+    print("1. Blenderbot [Only CPU]")
     print("2. Gemma-7b")
     print("3. Gemma-2b")
-    choice = input("Enter your choice (1/2/3): ")
+    print("4. Llama2-7b [Requires GPU]")
+    choice = input("Enter your choice (1/2/3/4): ")
 
     chatbot = initialize_chatbot(choice)
     if chatbot is None:

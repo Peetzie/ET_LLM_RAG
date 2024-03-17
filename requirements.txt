@@ -13,3 +13,14 @@ yaspin
 python-dotenv
 wikipedia-api
 accelerate
+filelock
+datasets
+pandas
+jupyter
+
+
+## 
+langchain
+sentence-transformers
+chromadb
+langchain-community
