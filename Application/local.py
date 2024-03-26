@@ -32,7 +32,7 @@ def initialize_chatbot(choice):
                 return chatbot
     elif choice == "4":
         with yaspin(text="Initializing Llama2-7b...", color="blue") as spinner:
-            chatbot = LLMS.Llama7BChat(GPU=GPU)
+            chatbot = LLMS.Llama7BChat()
             spinner.text = "Llama2 initialized"
             spinner.ok("✔")
             return chatbot

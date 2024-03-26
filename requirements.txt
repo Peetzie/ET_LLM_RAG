@@ -24,3 +24,7 @@ langchain
 sentence-transformers
 chromadb
 langchain-community
+
+
+evaluate
+seqeval
