@@ -4,8 +4,9 @@
 
 
 ## MODELS## 
-models/*
+models/
 Articles/
+embeddings/
 
 ### dotenv ###
 .env

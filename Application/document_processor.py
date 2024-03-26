@@ -57,5 +57,11 @@ class DocumentProcessor:
         embeddings = HuggingFaceInferenceAPIEmbeddings(
             api_key=access_key, model_name="BAAI/bge-base-en-v1.5"
         )
-        vectorstore = Chroma.from_documents(documents, embeddings)
+        if os.path.exists(f"{root_dir}/embeddings"):
+            vectorstore = Chroma(persist_directory=f"{root_dir}/embeddings")
+        else:
+            vectorstore = Chroma.from_documents(
+                documents, embeddings, persist_directory=f"{root_dir}/embeddings"
+            )
+            vectorstore.persist()  # Save to local disc
         return vectorstore
