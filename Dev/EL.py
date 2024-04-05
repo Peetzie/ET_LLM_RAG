@@ -32,8 +32,6 @@ label_list = wnut["train"].features["ner_tags"].feature.names
 # List of tokenizer models to use
 tokenizer_models = [
     "distilbert-base-uncased",
-    "microsoft/deberta-v3-base",
-    "FacebookAI/roberta-base",
 ]
 
 # Loop through each tokenizer model
