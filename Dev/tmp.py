@@ -8,7 +8,6 @@ from pathlib import Path
 import os
 import requests
 import wikipediaapi
-
 from dotenv import load_dotenv
 
 # Load variables
@@ -98,7 +97,6 @@ class Document:
 documents = [Document(chunk, metadata=None) for chunks in chunking for chunk in chunks]
 
 # Embed chunks using the specified embedding model
-access_key = os.getenv("HUGGING_FACE")
 embeddings = HuggingFaceInferenceAPIEmbeddings(
     api_key=access_key, model_name="BAAI/bge-base-en-v1.5"
 )
@@ -118,13 +116,8 @@ model = HuggingFaceHub(
     huggingfacehub_api_token=access_key,
 )
 qa = RetrievalQA.from_chain_type(llm=model, retriever=retriever)
-prompt = f"""
-You are an AI Assistant that follows instructions extremely well.
-Please be truthful and give direct answers
-</s>
 
-{query}
-</s>
-"""
-response = qa(prompt)
+# Extract context from the provided information
+context = """Result Q20984804:\nLabel: Lars Kai Hansen\nDescription: researcher, machine learning, Technical University of Denmark\nAliases: L K Hansen, Lars K. Hansen, L.K. Hansen, L. K. HANSEN, Lars K Hansen, Hansen LK\ninstance of: human\noccupation: professor\nsex or gender: male\ndate of birth: 1957-09-16\nplace of birth: Samsø\neducated at: University of Copenhagen\nemployer: Technical University of Denmark\nfield of work: machine learning, neuroinformatics\nnotable work: Neural network ensembles, Generalizable patterns in neuroimaging: how many principal components?, Plurality and resemblance in fMRI data analysis, Bayesian Averaging is Well-Temperated, The quantitative evaluation of functional neuroimaging experiments: the NPAIRS data analysis framework, The quantitative evaluation of functional neuroimaging experiments: mutual information learning curves, Mean-field approaches to independent component analysis, Independent component analysis of functional MRI: what is signal and what is noise?, Parallel Factor Analysis as an exploratory tool for wavelet transformed event-related EEG, Linear State-Space Models for Blind Source Separation, Bayesian Model Comparison in Nonlinear BOLD fMRI Hemodynamics, A Cure for Variance Inflation in High Dimensional Kernel Principal Component Analysis\ndoctoral student: Peter Toft, Finn Årup Nielsen, Thomas Kolenda, Morten Mørup, Sune Lehmann, Trine Julie Abrahamsen, Lasse Lohilahti Mølgaard, Tue Herlau, Simon Kamronn, Andreas Trier Poulsen, Ling Feng, Kristoffer Hougaard Madsen, Joaquin Quiñonero Candela, Michael Riis Andersen, Martin Christian Axelsen, Tue Lehn-Schiøler, Ulrik Kjems, Claus Svarer, Toke Jansen Hansen, Laura Rieger, Bjarne Ørum Fruergaard, Kaare Brandt Petersen, Sofie Therese Hansen, Philip J. H. Jørgensen, Jeppe Nørregaard, Damian Konrad Kowalczyk\nstudent: Finn Årup Nielsen, Sune Lehmann, Jeppe Nørregaard\naffiliation: Cognitive Systems, Center for Integrated Molecular Brain Imaging, DABAI, Danish Data Science Academy, Pioneer Centre for Artificial Intelligence\n\nResult Q53557020:\nLabel: Variance inflation in high dimensional Support Vector Machines\nDescription: scholarly article by Trine Julie Abrahamsen & Lars Kai Hansen published December 2013 in Pattern Recognition Letters\ninstance of: scholarly article\npublication date: 2013-12\nauthor: Lars Kai Hansen, Trine Julie Abrahamsen"""
+response = qa(context + "\n" + query)
 print(response["result"])
