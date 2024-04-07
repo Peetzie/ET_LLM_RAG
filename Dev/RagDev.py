@@ -114,7 +114,11 @@ docs_rel = retriever.get_relevant_documents(query)
 # Generate response to a given query using augmented knowledge base
 model = HuggingFaceHub(
     repo_id="HuggingFaceH4/zephyr-7b-alpha",
-    model_kwargs={"temperature": 0.1, "max_new_tokens": 1024, "max_length": 512},
+    model_kwargs={
+        "temperature": 0.1,
+        "max_new_tokens": 1024,
+        "max_length": 512,
+    },
     huggingfacehub_api_token=access_key,
 )
 qa = RetrievalQA.from_chain_type(llm=model, retriever=retriever)

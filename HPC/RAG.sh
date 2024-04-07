@@ -3,7 +3,7 @@
 ### –- specify queue --
 #BSUB -q gpuv100
 ### -- set the job Name --
-#BSUB -J EntityLinkingInferenceTraining
+#BSUB -J RAG
 ### -- ask for number of cores (default: 1) --
 #BSUB -n 4
 ### -- Select the resources: 1 gpu in exclusive process mode --
@@ -34,4 +34,4 @@ module load cuda/11.6
 
 
 source /work3/s174159/ET_LLM_RAG/.venv/bin/activate
-python /work3/s174159/ET_LLM_RAG/Dev/context_based_answering.py
+python /work3/s174159/ET_LLM_RAG/Dev/RAG.py

@@ -1,4 +1,3 @@
-# %%
 from dotenv import load_dotenv
 import torch
 import os
@@ -38,7 +37,7 @@ articles_dir = Path(root_dir, "Articles")
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Device: {device}")
 
-# %%
+
 tokenizer = AutoTokenizer.from_pretrained("dslim/bert-base-NER", cache_dir=model_dir)
 model = AutoModelForTokenClassification.from_pretrained(
     "dslim/bert-base-NER", cache_dir=model_dir
@@ -51,7 +50,6 @@ ner_results = nlp(example)
 print(ner_results)
 
 
-# %%
 def extract_entities(entities):
     """
     Extracts persons and locations from a list of entities recognized by an entity recognition system.
@@ -112,18 +110,17 @@ def extract_entities(entities):
     return persons, cleaned_locations
 
 
-# %%
 persons, locations = extract_entities(ner_results)
 
 print(f"Persons: {persons}")
 print(f"Locations: {locations}")
 
-# %%
+
 from langchain_community.tools.wikidata.tool import WikidataAPIWrapper, WikidataQueryRun
 
 wikidata = WikidataQueryRun(api_wrapper=WikidataAPIWrapper())
 
-# %%
+
 results = []
 # Iterate through each person and location
 for item in tqdm(persons + locations, desc=f"Querying Wikidata"):
@@ -131,10 +128,10 @@ for item in tqdm(persons + locations, desc=f"Querying Wikidata"):
     result = wikidata.run(item)
     results.append(result)
 
-# %%
+
 results
 
-# %%
+
 qids = []
 
 # Iterate through each result
@@ -144,7 +141,6 @@ for result in results:
 qids
 
 
-# %%
 # Function to get Wikipedia page title from Wikidata QID
 def get_wikipedia_title(qid, user_agent):
     headers = {"User-Agent": user_agent}
@@ -216,14 +212,12 @@ def download_wikipedia_article_with_progress(user_agent, num_words_to_save):
                 print(f"No Wikipedia article found for QID: {qid}")
 
 
-# %%
 length = 5000
 
-# %%
+
 download_wikipedia_article_with_progress("flarsen", length)
 
 
-# %%
 # Load text document from file system
 def load_text_document(file_path):
     with open(file_path, "r", encoding="utf-8") as file:
@@ -231,7 +225,6 @@ def load_text_document(file_path):
     return content
 
 
-# %%
 # Define folder path
 folder_path = "/work3/s174159/ET_LLM_RAG/Articles/"
 
@@ -267,7 +260,7 @@ vectorstore = Chroma.from_documents(documents, embeddings)
 # Define retriever
 retriever = vectorstore.as_retriever(search_type="mmr", search_kwargs={"k": 2})
 
-# %%
+
 # Perform retrieval-based question answering task
 query = example
 docs_rel = retriever.get_relevant_documents(query)
@@ -295,6 +288,3 @@ Please be truthful and give direct answers
 context = str(results)
 response = qa(context + "\n" + prompt)
 print(response["result"])
-
-
-# %%
