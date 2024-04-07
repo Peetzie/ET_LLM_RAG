@@ -34,4 +34,4 @@ module load cuda/11.6
 
 
 source /work3/s174159/ET_LLM_RAG/.venv/bin/activate
-python /work3/s174159/ET_LLM_RAG/Dev/RAG.py
+python /work3/s174159/ET_LLM_RAG/Dev/Finalized/RAG.py
