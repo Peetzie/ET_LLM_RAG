@@ -11,7 +11,7 @@
 ### -- set walltime limit: hh:mm --  maximum 24 hours for GPU-queues right now
 #BSUB -W 2:00
 # request 5GB of system-memory
-#BSUB -R "rusage[mem=5GB]"
+#BSUB -R "rusage[mem=25GB]"
 ### -- set the email address --
 # please uncomment the following line and put in your e-mail address,
 # if you want to receive e-mail notifications on a non-default address
@@ -34,4 +34,4 @@ module load cuda/11.6
 
 
 source /work3/s174159/ET_LLM_RAG/.venv/bin/activate
-python /work3/s174159/ET_LLM_RAG/Dev/EL.py
+python /work3/s174159/ET_LLM_RAG/Dev/context_based_answering.py

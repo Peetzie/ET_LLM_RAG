@@ -8,6 +8,7 @@ models/
 Articles/
 embeddings/
 
+Output/
 ### dotenv ###
 .env
 
