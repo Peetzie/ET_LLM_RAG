@@ -1,7 +1,11 @@
 # HuggingFace
 from transformers import BlenderbotTokenizer, BlenderbotForConditionalGeneration
-from transformers import AutoTokenizer, AutoModelForCausalLM
-
+from transformers import (
+    AutoTokenizer,
+    AutoModelForCausalLM,
+    AutoModelForTokenClassification,
+)
+from transformers import pipeline
 
 # Local
 from pathlib import Path
@@ -16,6 +20,7 @@ from langchain.chains import RetrievalQA
 # progress
 from tqdm import tqdm
 
+import helper_functions
 
 # Load variables
 load_dotenv()
@@ -130,35 +135,172 @@ class Llama7BChat:
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
 
+class NER:
+    def __init__(self, model_name="dslim/bert-base-NER") -> None:
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
+        self.mname = model_name
+        self.ner_tokenizer = AutoTokenizer.from_pretrained(
+            self.mname, cache_dir=model_dir
+        )
+        self.ner_model = AutoModelForTokenClassification.from_pretrained(
+            self.mname, cache_dir=model_dir
+        ).to(self.device)
+
+        self.nlp = pipeline("ner", model=self.ner_model, tokenizer=self.ner_tokenizer)
+
+    def extract_entities(self, utterance):
+        ner_results = self.nlp(utterance)
+        persons, locations = helper_functions.extract_entities(ner_results)
+        print(f"Persons: {persons}")
+        print(f"Locations: {locations}")
+        return persons, locations
+
+
 class Zephyr:
-    def __init__(self, vectorstore) -> None:
+    def __init__(self, retriever, run_locally=False) -> None:
+        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.mname = "HuggingFaceH4/zephyr-7b-alpha"
         self.model_kwargs = {
-            "temperature": 0.5,
-            "max_new_tokens": 512,
-            "max_length": 64,
+            "temperature": 0.7,
+            "max_new_tokens": 1024,
+            "max_length": 512,
         }
-        self.vectorstore = vectorstore
-        self.retiever = vectorstore.as_retriever(
-            search_type="mmr", search_kwargs={"k": 5}
-        )
+        self.retriever = retriever
         self.model = HuggingFaceHub(
             repo_id=self.mname,
             model_kwargs=self.model_kwargs,
             huggingfacehub_api_token=access_key,
         )
+        self.use_local_model = run_locally
 
-    def generate_response(self, utterance):
-        prompt = f"""
+        if self.use_local_model:
+            print(self.device)
+            self.question_tokenizer = AutoTokenizer.from_pretrained(
+                self.mname, cache_dir=model_dir, token=access_key
+            )
+            self.question_model = AutoModelForCausalLM.from_pretrained(
+                self.mname, cache_dir=model_dir, token=access_key
+            ).to(self.device)
+            self.text_generation = pipeline(
+                "text-generation",
+                model=self.question_model,
+                tokenizer=self.question_tokenizer,
+                device=self.device,
+            )
+
+    def generate_response_with_retrieval(self, utterance, docs=None):
+        if self.use_local_model:
+            prompt = f"""
             You are an AI Assistant that follows instructions extremely well.
             Please be truthful and give direct answers
             </s>
 
             {utterance}
+            From associated document retrieval {docs}
             </s>
             """
-        relevant_docs = self.retiever.get_relevant_documents(utterance)
-        qa = RetrievalQA.from_chain_type(llm=self.model, retriever=self.retiever)
-        response = qa(prompt)
-        result = response["result"]
-        return result
+            response = self.text_generation(
+                prompt, max_new_tokens=1024, temperature=0.7
+            )[0]["generated_text"]
+            return response
+        else:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                </s>
+                """
+            qa = RetrievalQA.from_chain_type(llm=self.model, retriever=self.retriever)
+            response = qa(prompt)
+            return response["result"]
+
+    def generate_response_context(self, utterance, context):
+        if self.use_local_model:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                
+                I have provided context: {context}
+                </s>
+                """
+            response = self.text_generation(
+                prompt, max_new_tokens=1024, temperature=0.7
+            )[0]["generated_text"]
+            return response
+        else:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                
+                I have provided context: {context}
+                </s>
+                """
+            response = self.model(prompt)
+            filtered_response = response.split(prompt)[-1]
+            return filtered_response
+
+    def generate_response(self, utterance):
+        if self.use_local_model:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                </s>
+                """
+            response = self.text_generation(
+                prompt, max_new_tokens=1024, temperature=0.7
+            )[0]["generated_text"]
+            return response
+        else:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                </s>
+                """
+            response = self.model(prompt)
+            filtered_response = response.split(prompt)[-1]
+            return filtered_response
+
+    def generate_response_with_retrieval_context(self, utterance, context, docs=None):
+        if self.use_local_model:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                From associated document retrieval {docs}
+                Further elaborated context: {context}
+                </s>
+                """
+            response = self.text_generation(
+                prompt, max_new_tokens=1024, temperature=0.7
+            )[0]["generated_text"]
+            return response
+        else:
+            prompt = f"""
+                You are an AI Assistant that follows instructions extremely well.
+                Please be truthful and give direct answers
+                </s>
+
+                {utterance}
+                </s>
+                """
+            qa = RetrievalQA.from_chain_type(llm=self.model, retriever=self.retriever)
+            context = str(context)
+            response = qa(context + "\n" + prompt)
+            return response["result"]

@@ -102,10 +102,13 @@ def check_non_empty():
     return empty_files
 
 
-def download_wikipedia_article_with_progress(user_agent, num_words_to_save):
-    qids_list = get_qids()
+def download_wikipedia_article_with_progress(user_agent, num_words_to_save, qids=None):
+    if qids is None:
+        qids_list = get_qids()
+    else:
+        qids_list = qids
     num_articles = len(qids_list)
-
+    new_article_names = []
     # Initialize a single progress bar for the overall process
     with tqdm(
         total=num_articles, desc="Downloading Wikipedia Articles", unit=" articles"
@@ -113,16 +116,25 @@ def download_wikipedia_article_with_progress(user_agent, num_words_to_save):
         for qid in qids_list:
             title = get_wikipedia_title(qid, user_agent)
             if title:
-                content = fetch_wikipedia_article(title, num_words_to_save, user_agent)
-                if content:
-                    # Save article content to disk
-                    filename = Path(root_dir, f"Articles/{title}.txt")
-                    with open(filename, "w", encoding="utf-8") as file:
-                        file.write(content)
-                    pbar_total.update(
-                        1
-                    )  # Update the progress bar for each downloaded article
+                filename = Path(root_dir, f"Articles/{title}.txt")
+                # Save article content to disk
+                if filename.exists():
+                    print(
+                        f"Skipping download for '{title}' as the file already exists."
+                    )
                 else:
-                    print(f"Failed to fetch content for article with QID: {qid}")
+                    content = fetch_wikipedia_article(
+                        title, num_words_to_save, user_agent
+                    )
+                    if content:
+                        with open(filename, "w", encoding="utf-8") as file:
+                            file.write(content)
+                        pbar_total.update(
+                            1
+                        )  # Update the progress bar for each downloaded article
+                        new_article_names.append((title, str(filename)))
+                    else:
+                        print(f"Failed to fetch content for article with QID: {qid}")
             else:
                 print(f"No Wikipedia article found for QID: {qid}")
+    return new_article_names

@@ -5,42 +5,23 @@ import document_processor
 import wikipedia_downloader
 import torch
 from subprocess import call
+import wikidata
+import helper_functions
 
 
-def initialize_chatbot(choice):
+def initialize_processor(model_name="BAAI/bge-base-en-v1.5"):
+    processor = document_processor.DocumentProcessor(model_name=model_name)
+    return processor
+
+
+def initialize_chatbot(choice, processor, run_locally):
     if choice == "1":
-        with yaspin(text="Initializing Blenderbot...", color="cyan") as spinner:
-            chatbot = LLMS.BlenderbotChat()
-            spinner.text = "Blenderbot initialized"
-            spinner.ok("✔")
-            return chatbot
-    elif choice == "2":
-        GPU = ask_gpu()
-        if GPU is not None:
-            with yaspin(text="Initializing Gemma-7b...", color="magenta") as spinner:
-                chatbot = LLMS.Gemma7bChat(GPU=GPU)
-                spinner.text = "Gemma initialized"
-                spinner.ok("✔")
-                return chatbot
-    elif choice == "3":
-        GPU = ask_gpu()
-        if GPU is not None:
-            with yaspin(text="Initializing Gemma-2b...", color="yellow") as spinner:
-                chatbot = LLMS.Gemma2bChat(GPU=GPU)
-                spinner.text = "Gemma2b initialized"
-                spinner.ok("✔")
-                return chatbot
-    elif choice == "4":
-        with yaspin(text="Initializing Llama2-7b...", color="blue") as spinner:
-            chatbot = LLMS.Llama7BChat()
-            spinner.text = "Llama2 initialized"
-            spinner.ok("✔")
-            return chatbot
-    elif choice == "5":
-
-        vectorstore = obtain_vectorstore()
+        retriever = processor.get_retriever()
         with yaspin(text="Initializing Zephyr-7b...", color="blue") as spinner:
-            chatbot = LLMS.Zephyr(vectorstore=vectorstore)
+            chatbot = LLMS.Zephyr(
+                retriever=retriever,
+                run_locally=run_locally,
+            )
             spinner.text = "Zephyr initialized"
             spinner.ok("✔")
             return chatbot
@@ -49,36 +30,65 @@ def initialize_chatbot(choice):
         return None
 
 
-def ask_gpu():
-    print("Do you want to use GPU for inference?")
-    print("1. Yes")
-    print("2. No")
-    choice = input("Enter your choice (1/2): ")
-    if choice == "1":
-        print("Using GPU for inference.")
-        return True
-    elif choice == "2":
-        print("Using CPU for inference.")
-        return False
-    else:
-        print("Invalid choice. Defaulting to CPU.")
-        return False
-
-
 def chat():
     print("Welcome to the Chat Application!")
     print("Choose a model to use:")
-    print("1. Blenderbot [Only CPU]")
-    print("2. Gemma-7b")
-    print("3. Gemma-2b")
-    print("4. Llama2-7b [Requires GPU]")
-    print("5. RAGchat zephyr")
-    choice = input("Enter your choice (1/2/3/4/5): ")
+    print("1. RAGchat zephyr [RAG]")
+    choice = input("Enter your choice (1/): ")
 
-    chatbot = initialize_chatbot(choice)
+    # Ask for additional options
+    print("Additional options:")
+    print("1. Use Wikidata for context")
+    print("2. Use QA/RAG (Wikipedia Articles) for context")
+    print("3. Use both for context")
+    print("4. None (No additional context)")
+    additional_choice = input("Enter your choice (1/2/3/4): ")
+
+    use_wikidata_for_context = False
+    use_qa_rag = False
+    use_both = False
+    neither = False
+
+    if additional_choice == "1":
+        use_wikidata_for_context = True
+    elif additional_choice == "2":
+        use_qa_rag = True
+    elif additional_choice == "3":
+        use_both = True
+    elif additional_choice == "4":
+        neither = True
+
+    # print values for each of the above
+    print(f"Use Wikidata for context: {use_wikidata_for_context}")
+    print(f"Use QA/RAG for context: {use_qa_rag}")
+    print(f"Use both for context: {use_both}")
+    print(f"Use neither for context: {neither}")
+    run_locally_choise = input(
+        "Run locally (Takes longer - otherwise HuggingFaceInference is used)? (yes/no): "
+    )
+    if run_locally_choise.lower() == "yes":
+        run_locally = True
+    else:
+        run_locally = False
+
+    processor = initialize_processor()
+
+    chatbot = initialize_chatbot(
+        (str(choice)),
+        processor,
+        run_locally,
+    )
+
+    if use_wikidata_for_context or use_qa_rag or use_both:
+        print("Additional context enabled.")
+        with yaspin(text="Initializing NER model...", color="yellow") as spinner:
+            NER = LLMS.NER(model_name="dslim/bert-base-NER")
+            spinner.text = "NER model initialized"
+            spinner.ok("✔")
+
     if chatbot is None:
         return
-
+    docs = None  # Bug fix
     print("You can start chatting. Type 'exit' to quit.")
     while True:
         user_input = input("You: ")
@@ -86,22 +96,56 @@ def chat():
             print("Exiting...")
             break
         with yaspin(text="Thinking...", color="green") as spinner:
-            response = chatbot.generate_response(user_input)
+            if use_both:
+                persons, locations = NER.extract_entities(user_input)
+                wikidata_results = wikidata.get_knowledge(persons, locations)
+                qids = helper_functions.find_qids(wikidata_results=wikidata_results)
+
+                new_articles = (
+                    wikipedia_downloader.download_wikipedia_article_with_progress(
+                        "flarsen", num_words_to_save=5000, qids=qids
+                    )
+                )
+                print(new_articles)
+                if new_articles:
+                    processor.add_new_articles(new_articles)
+                if run_locally:
+                    docs = processor.get_docs(user_input)
+                response = chatbot.generate_response_with_retrieval_context(
+                    user_input, context=wikidata_results, docs=docs
+                )
+            elif use_wikidata_for_context:
+                persons, locations = NER.extract_entities(user_input)
+                wikidata_results = wikidata.get_knowledge(persons, locations)
+
+                response = chatbot.generate_response_context(
+                    user_input, context=wikidata_results
+                )
+            elif use_qa_rag:
+                persons, locations = NER.extract_entities(user_input)
+                wikidata_results = wikidata.get_knowledge(persons, locations)
+                qids = helper_functions.find_qids(wikidata_results=wikidata_results)
+
+                new_articles = (
+                    wikipedia_downloader.download_wikipedia_article_with_progress(
+                        "flarsen", num_words_to_save=5000, qids=qids
+                    )
+                )
+                print(qids)
+                print(new_articles)
+                if new_articles:
+                    processor.add_new_articles(new_articles)
+
+                if run_locally:
+                    docs = processor.get_docs(user_input)
+                response = chatbot.generate_response_with_retrieval(
+                    user_input, docs=docs
+                )
+            else:
+                response = chatbot.generate_response(user_input)
             spinner.text = "Bot responded"
             spinner.ok("✔")
         print("Bot:", response)
-
-
-def obtain_vectorstore():
-    processor = document_processor.DocumentProcessor()
-    # Load the dataset
-    articles = processor.load_multiple_docs()
-    documents = processor.chunkify(articles)
-    with yaspin(text="Generating embeddings...", color="blue") as spinner:
-        vectorstore = processor.get_embeddings_data(documents)
-        spinner.text = "Embeddings created"
-        spinner.ok("✔")
-    return vectorstore
 
 
 def main():
