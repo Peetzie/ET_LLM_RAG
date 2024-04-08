@@ -151,34 +151,38 @@ def chat():
 def main():
     print("What would you like to do?")
     print("1. Chat with the Chatbot")
-    print("2. Create a dataset")
-    print("3. Delete the dataset")
-    print("4. Check integrity")
+    print("2. Check vectordatabase")
+    print("3. Update the database with articles from folder")
+    print("4. Reset vector database")
+    print("5. Delete the articles from the folder")
+    print("6. Check integrity of articles in folder")
     choice = input("Enter your choice (1/2/3/4): ")
 
     if choice == "1":
         chat()
     elif choice == "2":
-        wikipedia_downloader.create_folder()
-        # Ask for username
-        user_agent = input("Enter your user_agent (name): ")
-        # Ask for how many words to save articles with
-        num_words = int(input("Enter the number of words to save articles with: "))
-        wikipedia_downloader.download_wikipedia_article_with_progress(
-            user_agent=user_agent, num_words_to_save=num_words
-        )
-        print("Dataset sucessfully downloaded.. Returning..")
+        processor = document_processor.DocumentProcessor()
+        langchain_chroma = processor.get_langchainCroma()
+        print("There are", langchain_chroma._collection.count(), "in the collection")
         main()
     elif choice == "3":
-        confirm = input("Are you sure you want to delete the dataset? (yes/no): ")
+        processor = document_processor.DocumentProcessor()
+        processor.get_embeddings_data()
+        main()
+    elif choice == "4":
+        processor = document_processor.DocumentProcessor()
+        processor.reset_database()
+        print("Application must be restarted")
+    elif choice == "5":
+        confirm = input("Are you sure you want to delete the articles? (yes/no): ")
         if confirm.lower() == "yes":
             wikipedia_downloader.delete_dataset()
-            print("Dataset successfully deleted.. Returning..")
+            print("Articles successfully deleted.. Returning..")
             main()
         else:
-            print("Dataset deletion canceled.")
+            print("articles deletion canceled.")
             main()
-    elif choice == "4":
+    elif choice == "6":
         empty_files = wikipedia_downloader.check_non_empty()
         if empty_files:
             print("The following files are empty:")

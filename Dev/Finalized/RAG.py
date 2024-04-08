@@ -44,7 +44,7 @@ model = AutoModelForTokenClassification.from_pretrained(
 ).to("cuda")
 
 nlp = pipeline("ner", model=model, tokenizer=tokenizer)
-example = "Give me a resume of Tom Holland's acting career"
+example = "How old is Madonna?"
 
 ner_results = nlp(example)
 print(ner_results)

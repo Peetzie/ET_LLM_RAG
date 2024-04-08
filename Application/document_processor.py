@@ -50,13 +50,14 @@ class DocumentProcessor:
                 articles.append(content)
         return articles
 
-    def get_embeddings_data(self, documents):
+    def get_embeddings_data(self):
         filenames = [
             file_name
             for file_name in os.listdir(self.file_path)
             if file_name.endswith(".txt")
         ]
-        self.collection.add(documents=documents, ids=filenames)
+        articles = self.load_multiple_docs()
+        self.collection.add(documents=articles, ids=filenames)
 
     def add_new_articles(self, new_articles):
         articles = []
@@ -98,6 +99,39 @@ class DocumentProcessor:
         )
         return retriever
 
+    def get_langchainCroma(self):
+        embeddings = HuggingFaceInferenceAPIEmbeddings(
+            api_key=self.access_key, model_name=self.model_name
+        )
+
+        langchain_chroma = Chroma(
+            client=self.persistent_client,
+            collection_name=self.collection_name,
+            embedding_function=embeddings,
+        )
+        return langchain_chroma
+
     def get_docs(self, query):
         results = self.collection(query_texts=[query], n_results=5)
         return results
+
+    def reset_database(self):
+        import shutil
+
+        # Confirming the operation as it will delete all files inside vectorstore folder
+        confirmation = input("Are you sure you want to reset the database? (y/n): ")
+        if confirmation.lower() == "y":
+            # List all files and directories inside the vectorstore folder
+            vectorstore_contents = os.listdir(vectorstore_dir)
+            # Iterate over each file/directory and remove them
+            for item in vectorstore_contents:
+                item_path = os.path.join(vectorstore_dir, item)
+                # Check if the item is a file
+                if os.path.isfile(item_path):
+                    os.remove(item_path)  # Remove the file
+                # If it's a directory, remove its contents recursively
+                elif os.path.isdir(item_path):
+                    shutil.rmtree(item_path)  # Remove the directory and its contents
+            print("Database reset successfully.")
+        else:
+            print("Database reset operation aborted.")
