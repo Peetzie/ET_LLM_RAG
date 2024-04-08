@@ -112,6 +112,7 @@ def extract_entities(entities):
 
 persons, locations = extract_entities(ner_results)
 
+persons = ["Søren Pape Poulsen"]
 print(f"Persons: {persons}")
 print(f"Locations: {locations}")
 

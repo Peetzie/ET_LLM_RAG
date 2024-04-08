@@ -95,57 +95,57 @@ def chat():
         if user_input.lower() == "exit":
             print("Exiting...")
             break
-        with yaspin(text="Thinking...", color="green") as spinner:
-            if use_both:
-                persons, locations = NER.extract_entities(user_input)
-                wikidata_results = wikidata.get_knowledge(persons, locations)
-                qids = helper_functions.find_qids(wikidata_results=wikidata_results)
-
-                new_articles = (
-                    wikipedia_downloader.download_wikipedia_article_with_progress(
-                        "flarsen", num_words_to_save=5000, qids=qids
-                    )
+        if use_both:
+            persons, locations = NER.extract_entities(user_input)
+            wikidata_results = wikidata.get_knowledge(persons, locations)
+            qids = helper_functions.find_qids(wikidata_results=wikidata_results)
+            new_articles = (
+                wikipedia_downloader.download_wikipedia_article_with_progress(
+                    "flarsen", num_words_to_save=5000, qids=qids
                 )
-                print(new_articles)
-                if new_articles:
-                    processor.add_new_articles(new_articles)
-                if run_locally:
-                    docs = processor.get_docs(user_input)
+            )
+            print(new_articles)
+            if new_articles:
+                processor.add_new_articles(new_articles)
+            if run_locally:
+                docs = processor.get_docs(user_input)
+            with yaspin(text="Thinking...", color="green") as spinner:
                 response = chatbot.generate_response_with_retrieval_context(
                     user_input, context=wikidata_results, docs=docs
                 )
-            elif use_wikidata_for_context:
-                persons, locations = NER.extract_entities(user_input)
-
-                wikidata_results = wikidata.get_knowledge(persons, locations)
-
+                spinner.ok("✔")
+        elif use_wikidata_for_context:
+            persons, locations = NER.extract_entities(user_input)
+            wikidata_results = wikidata.get_knowledge(persons, locations)
+            with yaspin(text="Thinking...", color="green") as spinner:
                 response = chatbot.generate_response_context(
                     user_input, context=wikidata_results
                 )
-            elif use_qa_rag:
-                persons, locations = NER.extract_entities(user_input)
-                wikidata_results = wikidata.get_knowledge(persons, locations)
-                qids = helper_functions.find_qids(wikidata_results=wikidata_results)
-
-                new_articles = (
-                    wikipedia_downloader.download_wikipedia_article_with_progress(
-                        "flarsen", num_words_to_save=5000, qids=qids
-                    )
+                spinner.ok("✔")
+        elif use_qa_rag:
+            persons, locations = NER.extract_entities(user_input)
+            wikidata_results = wikidata.get_knowledge(persons, locations)
+            qids = helper_functions.find_qids(wikidata_results=wikidata_results)
+            new_articles = (
+                wikipedia_downloader.download_wikipedia_article_with_progress(
+                    "flarsen", num_words_to_save=5000, qids=qids
                 )
-                print(qids)
-                print(new_articles)
-                if new_articles:
-                    processor.add_new_articles(new_articles)
-
-                if run_locally:
-                    docs = processor.get_docs(user_input)
+            )
+            print(qids)
+            print(new_articles)
+            if new_articles:
+                processor.add_new_articles(new_articles)
+            if run_locally:
+                docs = processor.get_docs(user_input)
+            with yaspin(text="Thinking...", color="green") as spinner:
                 response = chatbot.generate_response_with_retrieval(
                     user_input, docs=docs
                 )
-            else:
+                spinner.ok("✔")
+        else:
+            with yaspin(text="Thinking...", color="green") as spinner:
                 response = chatbot.generate_response(user_input)
-            spinner.text = "Bot responded"
-            spinner.ok("✔")
+                spinner.ok("✔")
         print("Bot:", response)
 
 

@@ -164,7 +164,9 @@ class NER:
         # Only overrite if the user entered anything
         if persons_input:
             persons = persons_input
+            print(f"Corrected Persons: {persons}")
         if locations_input:
+            print(f"Corrected Locations: {locations}")
             locations = locations_input
 
         return persons, locations
