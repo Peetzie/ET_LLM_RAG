@@ -116,6 +116,7 @@ def chat():
                 )
             elif use_wikidata_for_context:
                 persons, locations = NER.extract_entities(user_input)
+
                 wikidata_results = wikidata.get_knowledge(persons, locations)
 
                 response = chatbot.generate_response_context(

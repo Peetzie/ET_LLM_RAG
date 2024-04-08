@@ -154,6 +154,19 @@ class NER:
         persons, locations = helper_functions.extract_entities(ner_results)
         print(f"Persons: {persons}")
         print(f"Locations: {locations}")
+        # Allow the user to correct the information in persons and locations via input
+        persons_input = input(
+            "Enter the correct persons seperated by ','. Leave blank for automatic found individuals: "
+        ).split(",")
+        locations_input = input(
+            "Enter the correct locations seperated by ','Leave blank for automatic found locations:: "
+        ).split(",")
+        # Only overrite if the user entered anything
+        if persons_input:
+            persons = persons_input
+        if locations_input:
+            locations = locations_input
+
         return persons, locations
 
 
