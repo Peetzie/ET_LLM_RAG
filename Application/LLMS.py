@@ -156,18 +156,21 @@ class NER:
         print(f"Locations: {locations}")
         # Allow the user to correct the information in persons and locations via input
         persons_input = input(
-            "Enter the correct persons seperated by ','. Leave blank for automatic found individuals: "
+            "Enter the correct persons separated by ','. Leave blank for automatic found individuals: "
         ).split(",")
         locations_input = input(
-            "Enter the correct locations seperated by ','Leave blank for automatic found locations:: "
+            "Enter the correct locations separated by ','. Leave blank for automatic found locations: "
         ).split(",")
+
         # Only overrite if the user entered anything
-        if persons_input:
-            persons = persons_input
+        if persons_input != [""]:
+            persons = [person.strip() for person in persons_input if person.strip()]
             print(f"Corrected Persons: {persons}")
-        if locations_input:
+        if locations_input != [""]:
+            locations = [
+                location.strip() for location in locations_input if location.strip()
+            ]
             print(f"Corrected Locations: {locations}")
-            locations = locations_input
 
         return persons, locations
 
@@ -317,5 +320,6 @@ class Zephyr:
                 """
             qa = RetrievalQA.from_chain_type(llm=self.model, retriever=self.retriever)
             context = str(context)
+            print(f"LAST TEP: {str(context)}")
             response = qa(context + "\n" + prompt)
             return response["result"]
